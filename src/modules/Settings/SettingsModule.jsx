@@ -20,14 +20,16 @@ export default function SettingsModule() {
 
   const handleNotificationToggle = async () => {
     if (!notificationsEnabled) {
-      // Request permission from the browser/iPhone
+      // This triggers the official iOS permission pop-up
       const permission = await Notification.requestPermission();
+
       if (permission === "granted") {
-        // Logic to register the Service Worker and get a "Token"
-        console.log("Notification permission granted!");
         updateSetting("notificationsActive", true);
+        console.log("Permission granted! We can now send push alerts.");
       } else {
-        alert("You need to allow notifications in your iPhone settings.");
+        alert(
+          "Permission denied. Please enable notifications in iPhone Settings > LifestyleOS.",
+        );
       }
     } else {
       updateSetting("notificationsActive", false);
