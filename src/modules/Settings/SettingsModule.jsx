@@ -19,20 +19,26 @@ export default function SettingsModule() {
   };
 
   const handleNotificationToggle = async () => {
-    if (!notificationsEnabled) {
-      // This triggers the official iOS permission pop-up
+    console.log("Toggle clicked!");
+
+    // 1. Check if the browser even supports it
+    if (!("Notification" in window)) {
+      alert("This browser does not support desktop notification");
+      return;
+    }
+
+    try {
+      // 2. Explicitly ask for permission
       const permission = await Notification.requestPermission();
 
       if (permission === "granted") {
+        alert("Permission Granted!");
         updateSetting("notificationsActive", true);
-        console.log("Permission granted! We can now send push alerts.");
       } else {
-        alert(
-          "Permission denied. Please enable notifications in iPhone Settings > LifestyleOS.",
-        );
+        alert("Permission status: " + permission);
       }
-    } else {
-      updateSetting("notificationsActive", false);
+    } catch (error) {
+      alert("Error requesting permission: " + error.message);
     }
   };
 

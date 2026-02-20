@@ -44,6 +44,15 @@ export default function DashboardModule() {
           <p className="text-4xl font-black text-white">{targetBedtime}</p>
         </div>
 
+        <button
+          onClick={async () => {
+            const res = await Notification.requestPermission();
+            alert("Status: " + res);
+          }}
+        >
+          FORCE PERMISSION TEST
+        </button>
+
         {/* ... other cards */}
       </div>
     </div>
