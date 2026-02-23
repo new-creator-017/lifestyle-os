@@ -1,11 +1,13 @@
 import { useLifestyle } from "../context/LifestyleContext";
 
 export default function DashboardModule() {
-  const { targetBedtime, isBedtimeReached, notificationsEnabled } =
-    useLifestyle();
+  const { user, logout } = useLifestyle();
 
   return (
-    <div>Dashboard page working as expcted</div>
+    <div>
+      <div>Dashboard module working</div>
+      <button onClick={logout}>TERMINATE_SESSION</button>
+    </div>
     // <div className="space-y-6 animate-in fade-in duration-500">
     //   {/* 1. URGENT NOTIFICATION BANNER */}
     //   {notificationsEnabled && isBedtimeReached && (

@@ -1,33 +1,22 @@
+// src/context/LifestyleContext.jsx
 import { createContext, useContext } from "react";
-import { useLifestyleData } from "../hooks/useLifestyleData";
-import { useUI } from "../hooks/useUI";
+import { useAuth } from "../hooks/useAuth";
 
-// 1. Create the actual "Cloud" container
 const LifestyleContext = createContext();
 
 export const LifestyleProvider = ({ children }) => {
-  // 2. Initialize our hooks inside the Provider
-  const lifestyle = useLifestyleData();
-  const ui = useUI();
+  const auth = useAuth(); // Identity Logic
 
-  // 3. Combine them into one "Master State" object
   const value = {
-    ...lifestyle,
-    ...ui,
+    ...auth,
   };
 
   return (
     <LifestyleContext.Provider value={value}>
-      {children}
+      {/* We use auth.authLoading from the useAuth hook */}
+      {!auth.authLoading && children}
     </LifestyleContext.Provider>
   );
 };
 
-// 4. Create a custom "Consumer" hook for easy access
-export const useLifestyle = () => {
-  const context = useContext(LifestyleContext);
-  if (!context) {
-    throw new Error("useLifestyle must be used within a LifestyleProvider");
-  }
-  return context;
-};
+export const useLifestyle = () => useContext(LifestyleContext);
