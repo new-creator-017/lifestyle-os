@@ -1,63 +1,35 @@
 import { useLifestyle } from "../context/LifestyleContext";
+import UserProfileCard from "../components/UserProfileCard"; // Assuming you split them, or keep it in the same file
 
-export default function DashboardModule() {
-  const { user, logout } = useLifestyle();
+const DashboardModule = () => {
+  const { user } = useLifestyle();
 
   return (
-    <div>
-      <div>Dashboard module working</div>
-      <button onClick={logout}>TERMINATE_SESSION</button>
+    // The main container for your OS Dashboard
+    <div className="min-h-screen bg-[#0a0c10] text-slate-200 p-4 md:p-8">
+      <div className="max-w-5xl mx-auto space-y-8">
+        {/* TOP SECTION: The Rounded Profile Card */}
+        <header>
+          <UserProfileCard />
+        </header>
+
+        {/* BOTTOM SECTION: The Goals Workspace */}
+        <main className="grid grid-cols-1 gap-8">
+          <section className="bg-slate-900/40 border border-slate-800 rounded-3xl p-8">
+            <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+              <span className="w-2 h-6 bg-cyan-500 rounded-full"></span>
+              Core Objectives
+            </h3>
+
+            {/* We will build the Add Goal input and List here next */}
+            <div className="text-slate-500 italic text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
+              Waiting for objective input...
+            </div>
+          </section>
+        </main>
+      </div>
     </div>
-    // <div className="space-y-6 animate-in fade-in duration-500">
-    //   {/* 1. URGENT NOTIFICATION BANNER */}
-    //   {notificationsEnabled && isBedtimeReached && (
-    //     <div className="bg-red-900/40 border-2 border-red-500 p-6 rounded-3xl animate-bounce-short shadow-[0_0_30px_rgba(239,68,68,0.2)]">
-    //       <div className="flex items-center gap-4">
-    //         <span className="text-3xl">🚨</span>
-    //         <div>
-    //           <h2 className="text-red-400 font-black uppercase tracking-tighter">
-    //             System Alert: Sleep Overdue
-    //           </h2>
-    //           <p className="text-red-200/80 text-sm">
-    //             It is past {targetBedtime}. Initialize sleep sequence now.
-    //           </p>
-    //         </div>
-    //       </div>
-    //     </div>
-    //   )}
-
-    //   <header>
-    //     <h1 className="text-3xl font-black tracking-tight text-white">
-    //       DASHBOARD
-    //     </h1>
-    //   </header>
-
-    //   {/* 2. STAT CARDS */}
-    //   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    //     <div
-    //       className={`p-6 rounded-3xl transition-all border ${
-    //         isBedtimeReached
-    //           ? "bg-gray-800 border-red-500/50"
-    //           : "bg-blue-600 border-transparent"
-    //       }`}
-    //     >
-    //       <h2 className="text-white/80 text-sm font-bold uppercase mb-1">
-    //         Target Bedtime
-    //       </h2>
-    //       <p className="text-4xl font-black text-white">{targetBedtime}</p>
-    //     </div>
-
-    //     <button
-    //       onClick={async () => {
-    //         const res = await Notification.requestPermission();
-    //         alert("Status: " + res);
-    //       }}
-    //     >
-    //       FORCE PERMISSION TEST
-    //     </button>
-
-    //     {/* ... other cards */}
-    //   </div>
-    // </div>
   );
-}
+};
+
+export default DashboardModule;
