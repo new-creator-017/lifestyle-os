@@ -12,33 +12,53 @@ export default function SettingsModule() {
     setTempTime(targetBedtime);
   }, [targetBedtime]);
 
-  const handleSaveTime = async () => {
+  const handleSaveBedtime = async () => {
     await updateSetting("targetBedtime", tempTime);
-    // The "Toast" notification is already handled by our hook's logAction logic,
-    // but updateSetting can be tracked similarly.
   };
 
   const handleNotificationToggle = async () => {
-    console.log("Toggle clicked!");
+    // Current browser-level permission status
+    const permission = Notification.permission;
 
-    // 1. Check if the browser even supports it
-    if (!("Notification" in window)) {
-      alert("This browser does not support desktop notification");
+    // CASE 1: Turning it OFF
+    if (notificationsEnabled) {
+      await updateSetting("notificationsEnabled", false);
       return;
     }
 
-    try {
-      // 2. Explicitly ask for permission
-      const permission = await Notification.requestPermission();
+    // CASE 2: Turning it ON - Permission was already blocked by user in iOS settings
+    if (permission === "denied") {
+      alert(
+        "Notifications are blocked in your phone settings. Please enable them for LifestyleOS manually.",
+      );
+      return;
+    }
 
-      if (permission === "granted") {
-        alert("Permission Granted!");
-        updateSetting("notificationsActive", true);
-      } else {
-        alert("Permission status: " + permission);
+    // CASE 3: Turning it ON - Permission is already "granted" (Future toggles)
+    if (permission === "granted") {
+      await updateSetting("notificationsEnabled", true);
+      // Note: You'd also re-sync the push token here if needed
+      return;
+    }
+
+    // CASE 4: Turning it ON - The "Base Case" (First time/Default)
+    if (permission === "default") {
+      try {
+        const response = await Notification.requestPermission();
+
+        if (response === "granted") {
+          // Success! Now we save to DB and (ideally) get the Push Token
+          await updateSetting("notificationsEnabled", true);
+
+          // This is where you'll eventually call:
+          // await subscribeUserToPush(user.uid);
+        } else {
+          // User clicked "Don't Allow"
+          console.log("User denied the request.");
+        }
+      } catch (err) {
+        console.error("Error during first-time activation:", err);
       }
-    } catch (error) {
-      alert("Error requesting permission: " + error.message);
     }
   };
 
@@ -52,33 +72,30 @@ export default function SettingsModule() {
 
       <div className="space-y-4">
         {/* BEDTIME WITH SAVE BUTTON */}
-        <div className="p-6 bg-gray-800 border border-gray-700 rounded-3xl">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-bold text-lg">Target Bedtime</h3>
-              <p className="text-sm text-gray-500">
-                Adjust the wheel and click save.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <input
-                type="time"
-                value={tempTime || "23:00"}
-                onChange={(e) => setTempTime(e.target.value)}
-                className="bg-gray-900 border border-gray-600 rounded-xl p-3 text-blue-400 font-mono focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={handleSaveTime}
-                disabled={tempTime === targetBedtime}
-                className={`px-4 py-3 rounded-xl font-bold transition-all ${
-                  tempTime === targetBedtime
-                    ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-500 active:scale-95"
-                }`}
-              >
-                SAVE
-              </button>
-            </div>
+        <div className="p-6 bg-gray-800 border border-gray-700 rounded-3xl flex items-center justify-between transition-all">
+          <div>
+            <h3 className="font-bold text-lg flex items-center gap-2">
+              Target Bedtime
+            </h3>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="time"
+              value={tempTime}
+              onChange={(e) => setTempTime(e.target.value)}
+              className="bg-gray-900 border border-gray-600 rounded-xl p-3 text-blue-400 font-mono focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={handleSaveBedtime}
+              disabled={tempTime === targetBedtime}
+              className={`px-4 py-3 rounded-xl font-bold transition-all ${
+                tempTime === targetBedtime
+                  ? "bg-gray-700 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-500 active:scale-95"
+              }`}
+            >
+              SAVE
+            </button>
           </div>
         </div>
 
@@ -99,18 +116,21 @@ export default function SettingsModule() {
           </div>
 
           <button
-            onClick={() =>
-              updateSetting("notificationsActive", !notificationsEnabled)
-            }
-            className={`w-16 h-8 rounded-full transition-all duration-300 relative shadow-inner ${
-              notificationsEnabled ? "bg-blue-600" : "bg-gray-700"
-            }`}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              console.log("Toggle Clicked!"); // Check your console for this!
+              handleNotificationToggle();
+            }}
+            className="relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none bg-zinc-700"
+            style={{
+              backgroundColor: notificationsEnabled ? "#22c55e" : "#3f3f46",
+            }}
           >
-            {/* The sliding "Knob" */}
-            <div
-              className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg transition-all duration-300 transform ${
-                notificationsEnabled ? "translate-x-9" : "translate-x-1"
-              }`}
+            <span
+              className={`${
+                notificationsEnabled ? "translate-x-8" : "translate-x-1"
+              } inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 ease-in-out`}
             />
           </button>
         </div>
