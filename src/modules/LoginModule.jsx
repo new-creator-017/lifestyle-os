@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { auth } from "../services/firebase";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { loginWithGoogle } from "../services/authService";
 
 export default function LoginModule() {
   const [loading, setLoading] = useState(false);
@@ -9,23 +8,18 @@ export default function LoginModule() {
   const handleLogin = async () => {
     setError(null);
     setLoading(true);
-    const provider = new GoogleAuthProvider();
 
     try {
-      // This opens the Google Selection Popup
-      await signInWithPopup(auth, provider);
-      // NOTE: We don't need to 'redirect' manually.
-      // LifestyleContext hears the success and App.jsx swaps the view.
+      await loginWithGoogle();
     } catch (error) {
       console.error("Authentication failed:", error);
       setError("ACCESS DENIED. PLEASE RETRY.");
       setLoading(false);
-      //   setTimeout(() => setError(null), 4000);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6">
+    <div className="bg-[#0a0c10] flex flex-col items-center justify-center min-h-screen p-6">
       {/* OS Branding */}
       <div className="text-center space-y-6 mb-24">
         <h1 className="text-6xl font-black italic tracking-tighter text-white leading-none">

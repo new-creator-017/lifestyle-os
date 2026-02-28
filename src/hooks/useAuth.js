@@ -1,38 +1,39 @@
-// src/hooks/useAuth.js
 import { useState, useEffect } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "../services/firebase";
-import { dbService } from "../services/dbService";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase";
+import { syncUserProfile, logoutUser } from "../services/authService";
 
 export function useAuth() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  // LOGOUT: High-level function for UI components
   const logout = async () => {
     try {
-      await signOut(auth);
-      console.log("OS: User logged out");
+      await logoutUser();
+      setUser(null);
     } catch (error) {
       console.error("OS Error: Logout failed", error);
     }
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      const handleAuthChange = async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      try {
         if (currentUser) {
-          await dbService.syncUserProfile(currentUser);
+          await syncUserProfile(currentUser);
           setUser(currentUser);
         } else {
           setUser(null);
         }
+      } catch (error) {
+        console.error("OS Error: Auth Sync Failed", error);
+      } finally {
         setAuthLoading(false);
-      };
-
-      // Run it!
-      handleAuthChange();
+      }
     });
 
+    // Cleanup listener when the app unmounts
     return () => unsubscribe();
   }, []);
 

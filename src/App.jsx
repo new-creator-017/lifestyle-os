@@ -1,18 +1,18 @@
 import { useLifestyle } from "./context/LifestyleContext";
-import LoginModule from "./modules/LoginModule";
-import DashboardModule from "./modules/DashboardModule";
+import { APP_MODULES } from "./modules/moduleConfig";
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigate,
+} from "react-router-dom";
+import Layout from "./components/Layout.jsx";
+import LoginModule from "./modules/LoginModule.jsx";
 
 export default function App() {
-  // Pulling 'user' and 'loading' from your Context
-  const { user, loading } = useLifestyle();
+  const { user, authLoading } = useLifestyle();
 
-  /**
-   * 1. THE AUTH GATE
-   * While Firebase checks for an existing session (loading === true),
-   * we render a blank black screen or a simple spinner.
-   * This prevents the "Login Button Flash" for users who are already logged in.
-   */
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="h-screen w-screen bg-black flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -26,8 +26,33 @@ export default function App() {
    * Otherwise, we show the Login screen.
    */
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-blue-500/30">
-      {user ? <DashboardModule /> : <LoginModule />}
-    </div>
+    <Router>
+      <Routes>
+        <Route
+          path="/login"
+          element={!user ? <LoginModule /> : <Navigate to="/" />}
+        />
+
+        {/* AUTOMATED PROTECTED ROUTES */}
+        {APP_MODULES.map((module) => (
+          <Route
+            key={module.path}
+            path={module.path}
+            element={
+              user ? (
+                <Layout>
+                  <module.component />
+                </Layout>
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+        ))}
+
+        {/* Catch-all: Redirect unknown paths to Home */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Router>
   );
 }
