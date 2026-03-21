@@ -1,11 +1,14 @@
 import { useLifestyle } from "../context/LifestyleContext";
 import BottomNav from "./BottomNav";
+import Toast from "./Toast";
 
 const Layout = ({ children }) => {
   const { user, logout } = useLifestyle();
 
   return (
     <div className="relative min-h-screen bg-[#0a0c10] flex flex-col overflow-x-hidden">
+      <Toast />
+
       {/* 1. FIXED TOP HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0c10]/80 backdrop-blur-md border-b border-white/5">
         <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">

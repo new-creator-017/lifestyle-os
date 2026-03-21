@@ -28,7 +28,7 @@ const BottomNav = () => {
                 <>
                   {/* Indicator Line */}
                   {isActive && (
-                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-cyan-500 shadow-[0_0_10px_#06b6d4]" />
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-cyan-500 shadow-[0_0_10px_#06b6d4]" />
                   )}
 
                   {/* Icon rendered as a tag */}
