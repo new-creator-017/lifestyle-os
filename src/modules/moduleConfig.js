@@ -1,12 +1,16 @@
-// src/config/moduleConfig.js
-import { House, Scale, Settings } from "lucide-react";
+import { House, Activity, Settings } from "lucide-react";
 import DashboardModule from "./DashboardModule";
-import WeightModule from "./WeightModule";
+import PhysiqueModule from "./PhysiqueModule";
 import SettingsModule from "./SettingsModule";
 
 export const APP_MODULES = [
   { name: "Home", path: "/", component: DashboardModule, icon: House },
-  { name: "Weight", path: "/weight", component: WeightModule, icon: Scale },
+  {
+    name: "Physique",
+    path: "/physique",
+    component: PhysiqueModule,
+    icon: Activity,
+  },
   {
     name: "Settings",
     path: "/settings",
