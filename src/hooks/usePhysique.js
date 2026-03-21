@@ -54,10 +54,10 @@ export const usePhysique = () => {
       await logMetricsEntry(user.uid, weight, waist);
       setWeight("");
       setWaist("");
-      showToast("Physique metrics logged successfully.", "success");
+      showToast("Data added successfully.", "success");
       await loadData();
     } catch (err) {
-      showToast("Failed to log metrics.", "error");
+      showToast("Failed to log data.", "error");
     } finally {
       setIsSyncing(false);
     }
