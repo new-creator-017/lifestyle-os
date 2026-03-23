@@ -111,7 +111,7 @@ export default function PhysiqueModule() {
           </div>
         </div>
 
-        {/* WAIST CHART (Primary Metric) */}
+        {/* WAIST CHART */}
         <div className="space-y-2">
           <h3 className="text-white font-bold text-sm">
             Waist Circumference (IN)
@@ -124,24 +124,21 @@ export default function PhysiqueModule() {
                   stroke="#27272a"
                   vertical={false}
                 />
-                <XAxis
-                  dataKey="date"
-                  stroke="#52525b"
-                  fontSize={10}
-                  tickFormatter={(tick) => tick.slice(5)}
-                />
+                <XAxis dataKey="date" hide={true} /> {/* HIDDEN X-AXIS */}
                 <YAxis
                   dataKey="waist"
                   stroke="#52525b"
                   fontSize={10}
+                  axisLine={false}
+                  tickLine={false}
                   domain={[
                     (dataMin) =>
                       Math.floor(
-                        Math.min(dataMin, targets.waist || dataMin) - 2,
+                        Math.min(dataMin, targets.waist || dataMin) - 1,
                       ),
                     (dataMax) =>
                       Math.ceil(
-                        Math.max(dataMax, targets.waist || dataMax) + 2,
+                        Math.max(dataMax, targets.waist || dataMax) + 1,
                       ),
                   ]}
                 />
@@ -149,14 +146,27 @@ export default function PhysiqueModule() {
                   contentStyle={{
                     backgroundColor: "#09090b",
                     border: "1px solid #27272a",
-                    borderRadius: "8px",
+                    borderRadius: "12px",
+                    padding: "12px",
                   }}
+                  labelStyle={{
+                    color: "#71717a",
+                    fontWeight: "bold",
+                    marginBottom: "4px",
+                  }} // FIXED INVISIBLE DATE
+                  itemStyle={{
+                    color: "#06b6d4",
+                    textTransform: "uppercase",
+                    fontSize: "12px",
+                    fontWeight: "900",
+                  }} // FIXED SMALL WAIST TEXT
                 />
                 {targets.waist && (
                   <ReferenceLine
                     y={targets.waist}
                     stroke="#06b6d4"
                     strokeDasharray="3 3"
+                    strokeOpacity={0.3}
                   />
                 )}
                 <Line
@@ -165,14 +175,15 @@ export default function PhysiqueModule() {
                   dataKey="waist"
                   stroke="#fff"
                   strokeWidth={3}
-                  dot={{ r: 4, fill: "#06b6d4", strokeWidth: 0 }}
+                  dot={false} // REMOVED DOTS
+                  activeDot={{ r: 6, fill: "#06b6d4", strokeWidth: 0 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* WEIGHT CHART (Secondary Metric) */}
+        {/* WEIGHT CHART */}
         <div className="space-y-2 border-t border-white/5 pt-6">
           <h3 className="text-zinc-400 font-bold text-sm">Body Weight (KG)</h3>
           <div className="w-full -ml-4">
@@ -183,24 +194,21 @@ export default function PhysiqueModule() {
                   stroke="#27272a"
                   vertical={false}
                 />
-                <XAxis
-                  dataKey="date"
-                  stroke="#52525b"
-                  fontSize={10}
-                  tickFormatter={(tick) => tick.slice(5)}
-                />
+                <XAxis dataKey="date" hide={true} /> {/* HIDDEN X-AXIS */}
                 <YAxis
                   dataKey="weight"
                   stroke="#52525b"
                   fontSize={10}
+                  axisLine={false}
+                  tickLine={false}
                   domain={[
                     (dataMin) =>
                       Math.floor(
-                        Math.min(dataMin, targets.weight || dataMin) - 5,
+                        Math.min(dataMin, targets.weight || dataMin) - 2,
                       ),
                     (dataMax) =>
                       Math.ceil(
-                        Math.max(dataMax, targets.weight || dataMax) + 5,
+                        Math.max(dataMax, targets.weight || dataMax) + 2,
                       ),
                   ]}
                 />
@@ -208,7 +216,19 @@ export default function PhysiqueModule() {
                   contentStyle={{
                     backgroundColor: "#09090b",
                     border: "1px solid #27272a",
-                    borderRadius: "8px",
+                    borderRadius: "12px",
+                    padding: "12px",
+                  }}
+                  labelStyle={{
+                    color: "#71717a",
+                    fontWeight: "bold",
+                    marginBottom: "4px",
+                  }}
+                  itemStyle={{
+                    color: "#fff",
+                    textTransform: "uppercase",
+                    fontSize: "12px",
+                    fontWeight: "900",
                   }}
                 />
                 {targets.weight && (
@@ -216,6 +236,7 @@ export default function PhysiqueModule() {
                     y={targets.weight}
                     stroke="#a1a1aa"
                     strokeDasharray="3 3"
+                    strokeOpacity={0.3}
                   />
                 )}
                 <Line
@@ -224,7 +245,8 @@ export default function PhysiqueModule() {
                   dataKey="weight"
                   stroke="#71717a"
                   strokeWidth={2}
-                  dot={{ r: 3, fill: "#a1a1aa", strokeWidth: 0 }}
+                  dot={false} // REMOVED DOTS
+                  activeDot={{ r: 5, fill: "#fff", strokeWidth: 0 }}
                 />
               </LineChart>
             </ResponsiveContainer>

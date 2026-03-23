@@ -9,12 +9,15 @@ export const useSettings = () => {
     targetBedtime: "00:00",
     targetWakeTime: "07:30",
     targetWeight: "",
-    targetWaist: "", // Cleared default to let you type fresh
+    targetWaist: "",
     meal1Time: "13:00",
     meal2Time: "19:00",
+    meal3Time: "22:00",
+    notificationsActive: false, // Notification state
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // 1. Fetch data from Firebase on load
   useEffect(() => {
     if (user?.uid) {
       getUserSettings(user.uid).then((data) => {
@@ -23,33 +26,72 @@ export const useSettings = () => {
     }
   }, [user?.uid]);
 
-  // The dynamic constraint engine
+  // 2. Cross-check Firebase state with actual OS permission on load
+  useEffect(() => {
+    if ("Notification" in window) {
+      if (
+        Notification.permission === "denied" &&
+        settings.notificationsActive
+      ) {
+        setSettings((prev) => ({ ...prev, notificationsActive: false }));
+      }
+    }
+  }, [settings.notificationsActive]);
+
   const validateNumeric = (val, maxWhole) => {
-    if (val === "") return ""; // Allow complete deletion
-    if (!/^\d*\.?\d*$/.test(val)) return null; // Reject letters/symbols immediately
+    if (val === "") return "";
+    if (!/^\d*\.?\d*$/.test(val)) return null;
 
     const [whole, decimal] = val.split(".");
-
-    // Enforce the specific digit limits
     if (whole.length > maxWhole) return null;
-    if (decimal !== undefined && decimal.length > 2) return null; // Max 2 decimal places
+    if (decimal !== undefined && decimal.length > 2) return null;
 
     return val;
   };
 
   const updateSetting = (key, value) => {
-    // Route the input through our validators if it's one of the metrics
     if (key === "targetWeight") {
-      const valid = validateNumeric(value, 3); // 3 digits before decimal
+      const valid = validateNumeric(value, 3);
       if (valid === null) return;
       value = valid;
     } else if (key === "targetWaist") {
-      const valid = validateNumeric(value, 2); // 2 digits before decimal
+      const valid = validateNumeric(value, 2);
       if (valid === null) return;
       value = valid;
     }
 
     setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // 3. Notification Toggle Logic
+  const toggleNotifications = async () => {
+    if (!("Notification" in window)) {
+      showToast("Push not supported. Add to Home Screen first.", "error");
+      return;
+    }
+
+    if (Notification.permission === "denied") {
+      showToast("Blocked by iOS. Enable in native Settings.", "error");
+      setSettings((prev) => ({ ...prev, notificationsActive: false }));
+      return;
+    }
+
+    // Request permission if not yet asked
+    if (Notification.permission === "default") {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        updateSetting("notificationsActive", true);
+        showToast("System notifications authorized.", "success");
+      } else {
+        updateSetting("notificationsActive", false);
+        showToast("Authorization denied.", "error");
+      }
+      return;
+    }
+
+    // If already granted, toggle internal state
+    const newState = !settings.notificationsActive;
+    updateSetting("notificationsActive", newState);
   };
 
   const handleSave = async () => {
@@ -65,5 +107,5 @@ export const useSettings = () => {
     }
   };
 
-  return { settings, updateSetting, handleSave, isSaving };
+  return { settings, updateSetting, handleSave, isSaving, toggleNotifications };
 };

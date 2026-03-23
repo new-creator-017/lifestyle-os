@@ -1,19 +1,19 @@
 import { useState } from "react";
 import { loginWithGoogle } from "../services/authService";
+import { useLifestyle } from "../context/LifestyleContext";
 
 export default function LoginModule() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { showToast } = useLifestyle(); // Import the global snackbar function
 
   const handleLogin = async () => {
-    setError(null);
     setLoading(true);
 
     try {
       await loginWithGoogle();
     } catch (error) {
       console.error("Authentication failed:", error);
-      setError("ACCESS DENIED. PLEASE RETRY.");
+      showToast("ACCESS DENIED. PLEASE RETRY.", "error"); // Use global snackbar here
       setLoading(false);
     }
   };
@@ -34,14 +34,6 @@ export default function LoginModule() {
           </p>
           <div className="h-px w-10 bg-zinc-800" /> {/* Fixed to h-px */}
         </div>
-      </div>
-
-      <div className="h-6 flex items-center justify-center mb-2">
-        {error && (
-          <p className="text-red-500 text-[10px] font-mono tracking-[0.2em] uppercase">
-            {error}
-          </p>
-        )}
       </div>
 
       {/* Auth Action */}

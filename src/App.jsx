@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 import LoginModule from "./modules/LoginModule.jsx";
+import Toast from "./components/Toast.jsx";
 
 export default function App() {
   const { user, authLoading } = useLifestyle();
@@ -20,39 +21,36 @@ export default function App() {
     );
   }
 
-  /**
-   * 2. THE REDIRECT LOGIC
-   * If Firebase found a user, we show the Dashboard.
-   * Otherwise, we show the Login screen.
-   */
   return (
-    <Router>
-      <Routes>
-        <Route
-          path="/login"
-          element={!user ? <LoginModule /> : <Navigate to="/" />}
-        />
+    <>
+      <Toast />
 
-        {/* AUTOMATED PROTECTED ROUTES */}
-        {APP_MODULES.map((module) => (
+      <Router>
+        <Routes>
           <Route
-            key={module.path}
-            path={module.path}
-            element={
-              user ? (
-                <Layout>
-                  <module.component />
-                </Layout>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
+            path="/login"
+            element={!user ? <LoginModule /> : <Navigate to="/" />}
           />
-        ))}
 
-        {/* Catch-all: Redirect unknown paths to Home */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </Router>
+          {APP_MODULES.map((module) => (
+            <Route
+              key={module.path}
+              path={module.path}
+              element={
+                user ? (
+                  <Layout>
+                    <module.component />
+                  </Layout>
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
+            />
+          ))}
+
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+    </>
   );
 }
