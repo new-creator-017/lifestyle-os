@@ -65,6 +65,14 @@ export default function SettingsModule() {
         <h2 className="text-cyan-500 font-black text-[10px] uppercase tracking-[0.2em] mt-8 mb-4">
           Metabolic Targets
         </h2>
+
+        <SettingInput
+          label="Target Weight"
+          value={settings.targetWeight}
+          suffix="KG"
+          inputMode="decimal"
+          onChange={(v) => updateSetting("targetWeight", v)}
+        />
         <SettingInput
           label="Target Waist"
           value={settings.targetWaist}
@@ -72,12 +80,13 @@ export default function SettingsModule() {
           inputMode="decimal"
           onChange={(v) => updateSetting("targetWaist", v)}
         />
+
         <SettingInput
-          label="Target Weight"
-          value={settings.targetWeight}
-          suffix="KG"
+          label="Target Stomach"
+          value={settings.targetStomach}
+          suffix="IN"
           inputMode="decimal"
-          onChange={(v) => updateSetting("targetWeight", v)}
+          onChange={(v) => updateSetting("targetStomach", v)}
         />
 
         <h2 className="text-cyan-500 font-black text-[10px] uppercase tracking-[0.2em] mt-8 mb-4">

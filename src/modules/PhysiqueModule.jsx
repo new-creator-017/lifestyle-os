@@ -1,21 +1,15 @@
+import React from "react";
 import { usePhysique } from "../hooks/usePhysique";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-} from "recharts";
+import MetricBlock from "../components/MetricBlock";
 
 export default function PhysiqueModule() {
   const {
     weight,
-    waist,
     setWeight,
+    waist,
     setWaist,
+    stomach,
+    setStomach,
     isSyncing,
     handleLog,
     history,
@@ -33,226 +27,69 @@ export default function PhysiqueModule() {
   ];
 
   return (
-    <div className="space-y-8 max-w-xl mx-auto pb-24 animate-in fade-in duration-500">
-      {/* 1. DATA ENTRY SECTION */}
-      <div className="bg-zinc-900/40 border border-white/5 p-6 rounded-3xl shadow-xl backdrop-blur-sm space-y-6">
-        <h2 className="text-cyan-500 font-black text-[10px] uppercase tracking-[0.2em]">
-          Data Logger
-        </h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-zinc-400 font-mono text-[10px] uppercase tracking-widest mb-2 ml-1">
-              Waist
-            </label>
-            <div className="relative h-12">
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="00.00"
-                value={waist}
-                onChange={(e) => setWaist(e.target.value)}
-                className="w-full h-full bg-black/40 px-4 rounded-xl text-lg font-bold text-white outline-none border border-white/5 focus:border-cyan-500/50 transition-all"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 font-black text-[10px]">
-                IN
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-zinc-400 font-mono text-[10px] uppercase tracking-widest mb-2 ml-1">
-              Weight
-            </label>
-            <div className="relative h-12">
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="00.00"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                className="w-full h-full bg-black/40 px-4 rounded-xl text-lg font-bold text-white outline-none border border-white/5 focus:border-white/20 transition-all"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 font-black text-[10px]">
-                KG
-              </span>
-            </div>
-          </div>
+    <div className="space-y-8 max-w-xl mx-auto pb-6 px-2 animate-in fade-in duration-500">
+      {/* HEADER & FULL-WIDTH TIME RANGE SELECTION */}
+      <div className="flex flex-col gap-5 mb-4">
+        <div>
+          <h1 className="text-2xl font-black text-white uppercase tracking-tighter">
+            Physique
+          </h1>
+          <p className="text-zinc-500 text-sm">Log and analyze body metrics.</p>
         </div>
 
-        <button
-          onClick={handleLog}
-          disabled={isSyncing || (!weight && !waist)}
-          className="w-full h-12 bg-white text-black font-black rounded-xl uppercase tracking-widest text-xs transition-all hover:bg-cyan-400 active:scale-95 disabled:opacity-20"
-        >
-          {isSyncing ? "Syncing..." : "Add"}
-        </button>
-      </div>
-
-      {/* 2. PROGRESS GRAPHS SECTION */}
-      <div className="bg-zinc-900/40 border border-white/5 p-6 rounded-3xl shadow-xl backdrop-blur-sm space-y-8">
-        <div className="flex justify-between items-center">
-          <h2 className="text-cyan-500 font-black text-[10px] uppercase tracking-[0.2em]">
-            Progress Tracking
-          </h2>
-          <div className="flex gap-1 bg-black/40 p-1 rounded-lg">
-            {ranges.map((r) => (
-              <button
-                key={r.label}
-                onClick={() => setTimeRange(r.value)}
-                className={`px-3 py-1 rounded-md text-[10px] font-black transition-all ${
-                  timeRange === r.value
-                    ? "bg-cyan-500 text-black"
-                    : "text-zinc-500 hover:text-white"
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* WAIST CHART */}
-        <div className="space-y-2">
-          <h3 className="text-white font-bold text-sm">
-            Waist Circumference (IN)
-          </h3>
-          <div className="w-full -ml-4">
-            <ResponsiveContainer width="100%" height={200} minWidth={0}>
-              <LineChart data={history}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#27272a"
-                  vertical={false}
-                />
-                <XAxis dataKey="date" hide={true} /> {/* HIDDEN X-AXIS */}
-                <YAxis
-                  dataKey="waist"
-                  stroke="#52525b"
-                  fontSize={10}
-                  axisLine={false}
-                  tickLine={false}
-                  domain={[
-                    (dataMin) =>
-                      Math.floor(
-                        Math.min(dataMin, targets.waist || dataMin) - 1,
-                      ),
-                    (dataMax) =>
-                      Math.ceil(
-                        Math.max(dataMax, targets.waist || dataMax) + 1,
-                      ),
-                  ]}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#09090b",
-                    border: "1px solid #27272a",
-                    borderRadius: "12px",
-                    padding: "12px",
-                  }}
-                  labelStyle={{
-                    color: "#71717a",
-                    fontWeight: "bold",
-                    marginBottom: "4px",
-                  }} // FIXED INVISIBLE DATE
-                  itemStyle={{
-                    color: "#06b6d4",
-                    textTransform: "uppercase",
-                    fontSize: "12px",
-                    fontWeight: "900",
-                  }} // FIXED SMALL WAIST TEXT
-                />
-                {targets.waist && (
-                  <ReferenceLine
-                    y={targets.waist}
-                    stroke="#06b6d4"
-                    strokeDasharray="3 3"
-                    strokeOpacity={0.3}
-                  />
-                )}
-                <Line
-                  connectNulls={true}
-                  type="monotone"
-                  dataKey="waist"
-                  stroke="#fff"
-                  strokeWidth={3}
-                  dot={false} // REMOVED DOTS
-                  activeDot={{ r: 6, fill: "#06b6d4", strokeWidth: 0 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* WEIGHT CHART */}
-        <div className="space-y-2 border-t border-white/5 pt-6">
-          <h3 className="text-zinc-400 font-bold text-sm">Body Weight (KG)</h3>
-          <div className="w-full -ml-4">
-            <ResponsiveContainer width="100%" height={200} minWidth={0}>
-              <LineChart data={history}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#27272a"
-                  vertical={false}
-                />
-                <XAxis dataKey="date" hide={true} /> {/* HIDDEN X-AXIS */}
-                <YAxis
-                  dataKey="weight"
-                  stroke="#52525b"
-                  fontSize={10}
-                  axisLine={false}
-                  tickLine={false}
-                  domain={[
-                    (dataMin) =>
-                      Math.floor(
-                        Math.min(dataMin, targets.weight || dataMin) - 2,
-                      ),
-                    (dataMax) =>
-                      Math.ceil(
-                        Math.max(dataMax, targets.weight || dataMax) + 2,
-                      ),
-                  ]}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#09090b",
-                    border: "1px solid #27272a",
-                    borderRadius: "12px",
-                    padding: "12px",
-                  }}
-                  labelStyle={{
-                    color: "#71717a",
-                    fontWeight: "bold",
-                    marginBottom: "4px",
-                  }}
-                  itemStyle={{
-                    color: "#fff",
-                    textTransform: "uppercase",
-                    fontSize: "12px",
-                    fontWeight: "900",
-                  }}
-                />
-                {targets.weight && (
-                  <ReferenceLine
-                    y={targets.weight}
-                    stroke="#a1a1aa"
-                    strokeDasharray="3 3"
-                    strokeOpacity={0.3}
-                  />
-                )}
-                <Line
-                  connectNulls={true}
-                  type="monotone"
-                  dataKey="weight"
-                  stroke="#71717a"
-                  strokeWidth={2}
-                  dot={false} // REMOVED DOTS
-                  activeDot={{ r: 5, fill: "#fff", strokeWidth: 0 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+        {/* TIME SELECTION - NOW SPANS FULL WIDTH */}
+        <div className="flex w-full gap-1 bg-zinc-900/80 border border-white/5 p-1 rounded-xl">
+          {ranges.map((r) => (
+            <button
+              key={r.label}
+              onClick={() => setTimeRange(r.value)}
+              className={`flex-1 py-2 rounded-lg text-[10px] font-black transition-all ${
+                timeRange === r.value
+                  ? "bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.3)]"
+                  : "text-zinc-500 hover:text-white"
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
         </div>
       </div>
+
+      <MetricBlock
+        title="Body Weight"
+        unit="KG"
+        dataKey="weight"
+        value={weight}
+        setValue={setWeight}
+        onAdd={handleLog}
+        isSyncing={isSyncing}
+        history={history}
+        target={targets?.targetWeight}
+      />
+
+      <MetricBlock
+        title="Waist Circumference"
+        unit="IN"
+        dataKey="waist"
+        value={waist}
+        setValue={setWaist}
+        onAdd={handleLog}
+        isSyncing={isSyncing}
+        history={history}
+        target={targets?.targetWaist}
+      />
+
+      <MetricBlock
+        title="Stomach Circumference"
+        unit="IN"
+        dataKey="stomach"
+        value={stomach}
+        setValue={setStomach}
+        onAdd={handleLog}
+        isSyncing={isSyncing}
+        history={history}
+        target={targets?.targetStomach}
+      />
     </div>
   );
 }

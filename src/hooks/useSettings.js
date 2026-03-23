@@ -10,6 +10,7 @@ export const useSettings = () => {
     targetWakeTime: "07:30",
     targetWeight: "",
     targetWaist: "",
+    targetStomach: "",
     meal1Time: "13:00",
     meal2Time: "19:00",
     meal3Time: "22:00",
@@ -55,6 +56,10 @@ export const useSettings = () => {
       if (valid === null) return;
       value = valid;
     } else if (key === "targetWaist") {
+      const valid = validateNumeric(value, 2);
+      if (valid === null) return;
+      value = valid;
+    } else if (key === "targetStomach") {
       const valid = validateNumeric(value, 2);
       if (valid === null) return;
       value = valid;

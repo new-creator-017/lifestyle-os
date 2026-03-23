@@ -2,54 +2,64 @@ import { db } from "../firebase";
 import {
   doc,
   setDoc,
-  updateDoc,
   collection,
   query,
   orderBy,
+  limit,
   getDocs,
-  where,
 } from "firebase/firestore";
 
-export const logMetricsEntry = async (userId, weight, waist) => {
+/**
+ * Logs physique metrics for today's date
+ */
+export const logPhysiqueData = async (userId, payload) => {
   if (!userId) throw new Error("Missing user ID");
 
-  const dateStr = new Date().toLocaleDateString("en-CA");
-  const userRef = doc(db, "users", userId);
-  const metricsRef = doc(db, "users", userId, "metrics", dateStr);
+  // Get current local date in YYYY-MM-DD format
+  const today = new Date();
+  const dateStr = today.toLocaleDateString("en-CA"); // e.g., "2026-03-23"
 
-  const data = { date: dateStr };
-  if (weight) data.weight = Number(weight);
-  if (waist) data.waist = Number(waist);
+  const docRef = doc(db, "users", userId, "metrics", dateStr);
 
   try {
-    await Promise.all([
-      setDoc(metricsRef, data, { merge: true }),
-      updateDoc(userRef, { "stats.currentMetrics": data }),
-    ]);
+    // merge: true allows updating just one metric without wiping the others for the day
+    await setDoc(
+      docRef,
+      {
+        ...payload,
+        date: dateStr,
+        timestamp: new Date().toISOString(),
+      },
+      { merge: true },
+    );
+
     return { success: true };
   } catch (error) {
-    console.error("OS_SYNC_ERROR:", error);
+    console.error("PHYSIQUE_SYNC_ERROR:", error);
     throw error;
   }
 };
 
-export const getMetricsHistory = async (userId, timeRangeDays) => {
+/**
+ * Retrieves the history of physique data based on a timeframe
+ */
+export const getPhysiqueHistory = async (userId, days = 30) => {
   if (!userId) return [];
 
-  const metricsRef = collection(db, "users", userId, "metrics");
-  let q = query(metricsRef, orderBy("date", "asc"));
+  try {
+    const metricsRef = collection(db, "users", userId, "metrics");
+    // If 'ALL' is passed, fetch a large limit, otherwise use the days constraint
+    const queryLimit = days === "ALL" ? 1000 : days;
 
-  if (timeRangeDays !== "ALL") {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - timeRangeDays);
-    const cutoffStr = cutoffDate.toLocaleDateString("en-CA");
-    q = query(
-      metricsRef,
-      where("date", ">=", cutoffStr),
-      orderBy("date", "asc"),
-    );
+    const q = query(metricsRef, orderBy("date", "desc"), limit(queryLimit));
+    const snap = await getDocs(q);
+
+    const data = snap.docs.map((doc) => doc.data());
+
+    // Reverse it so the oldest data is on the left of the graph, newest on the right
+    return data.reverse();
+  } catch (error) {
+    console.error("PHYSIQUE_FETCH_ERROR:", error);
+    return [];
   }
-
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => doc.data());
 };

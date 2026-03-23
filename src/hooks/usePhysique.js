@@ -1,45 +1,65 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLifestyle } from "../context/LifestyleContext";
 import {
-  logMetricsEntry,
-  getMetricsHistory,
+  logPhysiqueData,
+  getPhysiqueHistory,
 } from "../services/physiqueService";
 import { getUserSettings } from "../services/settingsService";
 
 export const usePhysique = () => {
   const { user, showToast } = useLifestyle();
 
-  const [weight, setWeight] = useState("");
-  const [waist, setWaist] = useState("");
+  // Raw states
+  const [weight, setRawWeight] = useState("");
+  const [waist, setRawWaist] = useState("");
+  const [stomach, setRawStomach] = useState("");
 
-  const [history, setHistory] = useState([]);
-  const [targets, setTargets] = useState({ weight: null, waist: null });
-  const [timeRange, setTimeRange] = useState(30);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [targets, setTargets] = useState({});
+  const [timeRange, setTimeRange] = useState(30);
 
-  const validateNumericInput = (val, maxWholeDigits) => {
-    if (val === "") return "";
-    if (!/^\d*\.?\d*$/.test(val)) return null;
+  // 1. DYNAMIC CONSTRAINT ENGINE
+  const validateNumeric = (val, maxWhole) => {
+    if (val === "") return ""; // Allow complete deletion
+    if (!/^\d*\.?\d*$/.test(val)) return null; // Reject letters/symbols immediately
+
     const [whole, decimal] = val.split(".");
-    if (whole.length > maxWholeDigits || (decimal && decimal.length > 2))
-      return null;
+
+    // Enforce the specific digit limits
+    if (whole.length > maxWhole) return null;
+    if (decimal !== undefined && decimal.length > 2) return null; // Max 2 decimal places
+
     return val;
+  };
+
+  // 2. WRAPPED SETTERS
+  const setWeight = (val) => {
+    const valid = validateNumeric(val, 3); // 3 digits before decimal
+    if (valid !== null) setRawWeight(valid);
+  };
+
+  const setWaist = (val) => {
+    const valid = validateNumeric(val, 2); // 2 digits before decimal
+    if (valid !== null) setRawWaist(valid);
+  };
+
+  const setStomach = (val) => {
+    const valid = validateNumeric(val, 2); // 2 digits before decimal
+    if (valid !== null) setRawStomach(valid);
   };
 
   const loadData = useCallback(async () => {
     if (!user?.uid) return;
     try {
-      const userSettings = await getUserSettings(user.uid);
-      if (userSettings) {
-        setTargets({
-          weight: Number(userSettings.targetWeight) || null,
-          waist: Number(userSettings.targetWaist) || null,
-        });
-      }
-      const data = await getMetricsHistory(user.uid, timeRange);
-      setHistory(data);
-    } catch (err) {
-      console.error("Failed to load metrics data", err);
+      const [historyData, settingsData] = await Promise.all([
+        getPhysiqueHistory(user.uid, timeRange),
+        getUserSettings(user.uid),
+      ]);
+      setHistory(historyData);
+      if (settingsData) setTargets(settingsData);
+    } catch (error) {
+      console.error("OS_PHYSIQUE_LOAD_ERROR", error);
     }
   }, [user?.uid, timeRange]);
 
@@ -48,16 +68,29 @@ export const usePhysique = () => {
   }, [loadData]);
 
   const handleLog = async () => {
-    if (!user?.uid || (!weight && !waist)) return;
+    if (!user?.uid) return;
     setIsSyncing(true);
+
     try {
-      await logMetricsEntry(user.uid, weight, waist);
-      setWeight("");
-      setWaist("");
-      showToast("Data added successfully.", "success");
-      await loadData();
-    } catch (err) {
-      showToast("Failed to log data.", "error");
+      const payload = {};
+
+      if (weight && !isNaN(weight)) payload.weight = parseFloat(weight);
+      if (waist && !isNaN(waist)) payload.waist = parseFloat(waist);
+      if (stomach && !isNaN(stomach)) payload.stomach = parseFloat(stomach);
+
+      if (Object.keys(payload).length > 0) {
+        await logPhysiqueData(user.uid, payload);
+        showToast("Metrics Synced.", "success");
+
+        // Clear fields using raw setters so it instantly empties
+        setRawWeight("");
+        setRawWaist("");
+        setRawStomach("");
+
+        await loadData();
+      }
+    } catch (error) {
+      showToast("Sync failed.", "error");
     } finally {
       setIsSyncing(false);
     }
@@ -65,15 +98,11 @@ export const usePhysique = () => {
 
   return {
     weight,
+    setWeight,
     waist,
-    setWeight: (val) => {
-      const v = validateNumericInput(val, 3);
-      if (v !== null) setWeight(v);
-    },
-    setWaist: (val) => {
-      const v = validateNumericInput(val, 2);
-      if (v !== null) setWaist(v);
-    },
+    setWaist,
+    stomach,
+    setStomach,
     isSyncing,
     handleLog,
     history,
