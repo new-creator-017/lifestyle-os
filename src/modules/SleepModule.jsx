@@ -212,7 +212,7 @@ export default function SleepModule() {
 
       <button
         onClick={() => handleAction("sleep")}
-        className="w-full py-8 bg-zinc-900/60 border border-white/10 text-zinc-400 font-black rounded-[32px] uppercase tracking-[0.4em] text-[10px] hover:text-white transition-all active:scale-95"
+        className="w-full py-8 bg-zinc-900/60 border border-white/10 text-zinc-400 font-black rounded-4xl uppercase tracking-[0.4em] text-[10px] hover:text-white transition-all active:scale-95"
       >
         Lights Out
       </button>
