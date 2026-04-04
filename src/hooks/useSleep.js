@@ -15,15 +15,26 @@ const parseTargetTime = (timeStr) => {
 export function useSleep(days = 14) {
   const { user } = useLifestyle();
   const [history, setHistory] = useState([]);
-  const [avgDurationLabel, setAvgDurationLabel] = useState("0h 0m");
+  const [avgDurationLabel, setAvgDurationLabel] = useState("0h 00m");
   const [isAsleep, setIsAsleep] = useState(false);
 
   // Default fallback targets just in case settings are empty
   const [targets, setTargets] = useState({ bed: 23.5, wake: 31.0 });
 
+  // === NEW GLOBAL SYNC LOGIC ===
+  // This ensures Layout.jsx and DashboardModule.jsx always share the exact same state
   useEffect(() => {
-    const session = localStorage.getItem("lifestyle_sleep_start");
-    if (session) setIsAsleep(true);
+    const syncSleepState = () => {
+      const session = localStorage.getItem("lifestyle_sleep_start");
+      setIsAsleep(!!session);
+    };
+
+    syncSleepState(); // Check on mount
+    window.addEventListener("sleep_status_changed", syncSleepState); // Listen for cross-component triggers
+
+    return () => {
+      window.removeEventListener("sleep_status_changed", syncSleepState); // Cleanup
+    };
   }, []);
 
   const loadData = useCallback(async () => {
@@ -55,14 +66,22 @@ export function useSleep(days = 14) {
             0,
           );
           const avgHours = totalHours / validEntries.length;
-          const h = Math.floor(avgHours);
-          const m = Math.round((avgHours - h) * 60);
-          setAvgDurationLabel(`${h}h ${m === 0 ? "00" : m}m`);
+
+          let h = Math.floor(avgHours);
+          let m = Math.round((avgHours - h) * 60);
+
+          // EDGE CASE FIX: Prevent "7h 60m" display
+          if (m === 60) {
+            h += 1;
+            m = 0;
+          }
+
+          setAvgDurationLabel(`${h}h ${m.toString().padStart(2, "0")}m`);
         } else {
-          setAvgDurationLabel("0h 0m");
+          setAvgDurationLabel("0h 00m");
         }
       } else {
-        setAvgDurationLabel("0h 0m");
+        setAvgDurationLabel("0h 00m");
       }
     } catch (error) {
       console.error("OS_SLEEP_LOAD_ERROR", error);
@@ -78,17 +97,30 @@ export function useSleep(days = 14) {
       const startTime = new Date().toISOString();
       localStorage.setItem("lifestyle_sleep_start", startTime);
       setIsAsleep(true);
+
+      // Broadcast to Layout.jsx to instantly show the overlay
+      window.dispatchEvent(new Event("sleep_status_changed"));
     } else if (action === "wake") {
       if (!user?.uid) return;
       const startIso = localStorage.getItem("lifestyle_sleep_start");
 
-      if (startIso) {
-        await logSleepSession(user.uid, new Date(startIso), new Date());
-      }
+      try {
+        if (startIso) {
+          // Wait for the DB to successfully log the session
+          await logSleepSession(user.uid, new Date(startIso), new Date());
+        }
+      } catch (error) {
+        console.error("Failed to log sleep to DB. Unlocking UI anyway.", error);
+      } finally {
+        // FAILSAFE: Always runs, even if offline, preventing UI lock
+        localStorage.removeItem("lifestyle_sleep_start");
+        setIsAsleep(false);
 
-      localStorage.removeItem("lifestyle_sleep_start");
-      setIsAsleep(false);
-      await loadData();
+        // Broadcast to all components to drop the overlay
+        window.dispatchEvent(new Event("sleep_status_changed"));
+
+        await loadData(); // Refresh the chart with the newly completed sleep
+      }
     }
   };
 
