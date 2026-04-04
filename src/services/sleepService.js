@@ -58,13 +58,24 @@ export const logSleepSession = async (uid, sleepTime, wakeTime) => {
     const diffMs = wakeTime - sleepTime;
     const duration = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
 
-    // Assign this sleep to the "wake up" date
-    const dateStr = wakeTime.toISOString().split("T")[0];
+    // FIX 1: Use local time instead of UTC to prevent timezone shifting bugs when traveling
+    const dateStr = wakeTime.toLocaleDateString("en-CA");
+
+    // Get initial decimals
+    let bedDec = timeToDecimal(sleepTime);
+    let wakeDec = timeToDecimal(wakeTime);
+
+    // FIX 2: THE "PAST NOON" FAILSAFE
+    // If you sleep at 1:00 AM (25.0) and wake at 1:00 PM (13.0),
+    // force wake to 37.0 so the Recharts graph doesn't draw a backwards zig-zag!
+    if (wakeDec < bedDec) {
+      wakeDec += 24;
+    }
 
     const payload = {
       date: dateStr,
-      bed: timeToDecimal(sleepTime),
-      wake: timeToDecimal(wakeTime),
+      bed: bedDec,
+      wake: wakeDec,
       displaySleep: formatDisplayTime(sleepTime),
       displayWake: formatDisplayTime(wakeTime),
       duration: duration,
