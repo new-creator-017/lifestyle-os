@@ -70,7 +70,7 @@ export default function MetricBlock({
   };
 
   return (
-    <div className="bg-zinc-900/40 border border-white/5 p-6 rounded-3xl shadow-xl backdrop-blur-sm space-y-6">
+    <div className="space-y-2">
       <h2 className="text-cyan-500 font-black text-[10px] uppercase tracking-[0.2em]">
         {title}
       </h2>
@@ -100,8 +100,8 @@ export default function MetricBlock({
       </div>
 
       {/* GRAPH WITH BORDER & AXIS LINES */}
-      <div className="w-full border border-white/10 rounded-2xl p-4 bg-black/20">
-        <ResponsiveContainer width="100%" height={180} minWidth={0}>
+      <div className="w-full border border-white/10 bg-black/20">
+        <ResponsiveContainer width="100%" height={240} minWidth={0}>
           <LineChart
             data={history}
             margin={{ top: 10, right: 10, left: -25, bottom: 0 }}

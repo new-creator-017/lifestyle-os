@@ -35,7 +35,7 @@ export default function SettingsModule() {
     useSettings();
 
   return (
-    <div className="max-w-md mx-auto space-y-8 px-4 pb-6">
+    <div className="space-y-8 max-w-xl mx-auto pb-6 px-2 animate-in fade-in duration-500">
       <header>
         <h1 className="text-2xl font-black text-white uppercase tracking-tighter">
           System Targets

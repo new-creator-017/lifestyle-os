@@ -1,27 +1,61 @@
-import { doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import { doc, writeBatch, collection } from "firebase/firestore";
 
-const sleepDummyData = [
-  { date: "2026-03-09", sleepTime: "23:30", wakeTime: "07:30" },
-  { date: "2026-03-10", sleepTime: "00:15", wakeTime: "08:00" },
-  { date: "2026-03-11", sleepTime: "23:45", wakeTime: "07:15" },
-  { date: "2026-03-12", sleepTime: "01:30", wakeTime: "09:00" },
-  { date: "2026-03-13", sleepTime: "22:30", wakeTime: "06:30" },
-  { date: "2026-03-14", sleepTime: "02:15", wakeTime: "10:30" },
-  { date: "2026-03-15", sleepTime: "23:50", wakeTime: "07:30" },
-  { date: "2026-03-16", sleepTime: "03:00", wakeTime: "11:00" },
-  { date: "2026-03-17", sleepTime: "21:00", wakeTime: "05:00" },
-  { date: "2026-03-18", sleepTime: "00:00", wakeTime: "07:30" },
-  { date: "2026-03-19", sleepTime: "04:30", wakeTime: "13:00" },
-  { date: "2026-03-20", sleepTime: "23:45", wakeTime: "08:15" },
-  { date: "2026-03-21", sleepTime: "01:00", wakeTime: "06:00" },
-  { date: "2026-03-22", sleepTime: "00:05", wakeTime: "07:30" },
-];
+export const seedSleepData = async (uid) => {
+  try {
+    const batch = writeBatch(db);
+    const sleepRef = collection(db, "users", uid, "sleep");
 
-export const runSleepSeed = async (userId) => {
-  if (!userId) throw new Error("Unauthorized");
-  for (const day of sleepDummyData) {
-    const docRef = doc(db, "users", userId, "sleep", day.date);
-    await setDoc(docRef, day, { merge: true });
+    const today = new Date();
+
+    // Generate 90 days of historical data
+    for (let i = 0; i < 90; i++) {
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() - i);
+      const dateStr = targetDate.toISOString().split("T")[0];
+
+      // Randomize sleep duration between 6.0 and 8.5 hours
+      const duration = Number((Math.random() * 2.5 + 6.0).toFixed(2));
+
+      // Randomize bedtime between 10:00 PM (22.0) and 1:00 AM (25.0)
+      const bedDecimal = Number((Math.random() * 3 + 22).toFixed(2));
+
+      // Calculate wake time
+      let wakeDecimal = bedDecimal + duration;
+
+      // FIXED: Accurately converts decimals to exact HH:mm strings
+      const formatTime = (dec) => {
+        let totalHours = dec;
+        if (totalHours >= 24) totalHours -= 24;
+
+        let h = Math.floor(totalHours);
+        let m = Math.round((totalHours - h) * 60);
+
+        // Edge case: If rounding pushes minutes to 60, roll over to the next hour
+        if (m === 60) {
+          h += 1;
+          m = 0;
+          if (h >= 24) h -= 24;
+        }
+
+        return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+      };
+
+      batch.set(doc(sleepRef, dateStr), {
+        date: dateStr,
+        bed: bedDecimal,
+        wake: wakeDecimal,
+        displaySleep: formatTime(bedDecimal),
+        displayWake: formatTime(wakeDecimal),
+        duration: duration,
+      });
+    }
+
+    await batch.commit();
+    console.log("Successfully seeded 90 days of perfect sleep data!");
+    return true;
+  } catch (error) {
+    console.error("Error seeding data:", error);
+    return false;
   }
 };

@@ -23,7 +23,6 @@ export default function PhysiqueModule() {
     { label: "3M", value: 90 },
     { label: "6M", value: 180 },
     { label: "1Y", value: 365 },
-    { label: "ALL", value: "ALL" },
   ];
 
   return (

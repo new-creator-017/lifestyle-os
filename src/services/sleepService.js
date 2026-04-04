@@ -1,50 +1,81 @@
 import { db } from "../firebase";
 import {
-  doc,
-  setDoc,
   collection,
   query,
   orderBy,
   limit,
   getDocs,
+  doc,
+  setDoc,
 } from "firebase/firestore";
 
-export const logSleepAction = async (userId, type) => {
-  if (!userId) return;
+// Helper: Converts a Date object to the Noon-Ruler decimal system for the graph
+// E.g., 10:30 PM -> 22.5.  2:00 AM -> 26.0
+const timeToDecimal = (dateObj) => {
+  const hours = dateObj.getHours();
+  const minutes = dateObj.getMinutes();
+  let decimal = hours + minutes / 60;
 
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("en-CA");
-  const timeStr = now.toTimeString().split(" ")[0].slice(0, 5); // "HH:mm"
+  // If the time is past midnight (AM), add 24 so the line visually crosses midnight
+  if (decimal < 12) {
+    decimal += 24;
+  }
+  return parseFloat(decimal.toFixed(2));
+};
 
-  const sleepRef = doc(db, "users", userId, "sleep", dateStr);
+// Helper: Formats "23:30" or "07:00" strings
+const formatDisplayTime = (dateObj) => {
+  return dateObj.toLocaleTimeString("en-US", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
-  const data = {
-    date: dateStr,
-    [`${type}Time`]: timeStr,
-    [`${type}Timestamp`]: now.toISOString(),
-  };
-
+export const getSleepHistory = async (uid, days) => {
   try {
-    await setDoc(sleepRef, data, { merge: true });
+    const sleepRef = collection(db, "users", uid, "sleep");
+    // Fetch newest logs first, limited by the days requested
+    const q = query(sleepRef, orderBy("date", "desc"), limit(days));
+    const snapshot = await getDocs(q);
 
-    // Update the global "asleep" status for the UI Cradle Mode
-    const userRef = doc(db, "users", userId);
-    await setDoc(
-      userRef,
-      { status: { isAsleep: type === "sleep" } },
-      { merge: true },
-    );
+    const data = [];
+    snapshot.forEach((doc) => {
+      data.push({ id: doc.id, ...doc.data() });
+    });
 
-    return { success: true };
+    // Reverse the array so chronological order goes left-to-right on the graph
+    return data.reverse();
   } catch (error) {
-    console.error("SLEEP_SERVICE_ERROR:", error);
-    throw error;
+    console.error("Error fetching sleep data:", error);
+    return [];
   }
 };
 
-export const getSleepHistory = async (userId, days = 7) => {
-  const sleepRef = collection(db, "users", userId, "sleep");
-  const q = query(sleepRef, orderBy("date", "desc"), limit(days));
-  const snap = await getDocs(q);
-  return snap.docs.map((doc) => doc.data());
+export const logSleepSession = async (uid, sleepTime, wakeTime) => {
+  try {
+    // Calculate duration in decimal hours (e.g., 7.5 hours)
+    const diffMs = wakeTime - sleepTime;
+    const duration = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+
+    // Assign this sleep to the "wake up" date
+    const dateStr = wakeTime.toISOString().split("T")[0];
+
+    const payload = {
+      date: dateStr,
+      bed: timeToDecimal(sleepTime),
+      wake: timeToDecimal(wakeTime),
+      displaySleep: formatDisplayTime(sleepTime),
+      displayWake: formatDisplayTime(wakeTime),
+      duration: duration,
+    };
+
+    const docRef = doc(db, "users", uid, "sleep", dateStr);
+    await setDoc(docRef, payload, { merge: true });
+
+    return true;
+  } catch (error) {
+    console.error("Error logging sleep session:", error);
+    throw error;
+  }
 };

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useSleep } from "../hooks/useSleep";
 import {
   LineChart,
@@ -10,60 +10,120 @@ import {
   ReferenceLine,
   CartesianGrid,
 } from "recharts";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function SleepModule() {
-  const [days, setDays] = useState(7);
-  const { history, avgDurationLabel, isAsleep, page, setPage, handleAction } =
-    useSleep(days);
+  const [days, setDays] = useState(13); // Default changed to 15
+  const { history, avgDurationLabel, targets } = useSleep(days);
 
-  // 1. DYNAMIC AXIS: Calculate min/max from current history with 1hr padding
+  // Updated to 15D, 1M, and 3M
+  const ranges = [
+    { label: "14D", value: 13 },
+    { label: "1M", value: 30 },
+    { label: "3M", value: 90 },
+  ];
+
+  // 1. DYNAMIC Y-AXIS (Rounded to nearest whole hours)
   const yDomain = useMemo(() => {
-    if (!history || history.length === 0) return [10, 22]; // Fallback
+    if (!history || history.length === 0) return [10, 22];
     const beds = history.map((d) => d.bed).filter((v) => v !== null);
     const wakes = history.map((d) => d.wake).filter((v) => v !== null);
 
-    const min = Math.min(...beds) - 1;
-    const max = Math.max(...wakes) + 1;
+    // We add targets.bed and targets.wake into the Min/Max calculation
+    // so the graph always stretches far enough to keep your goals visible!
+    const min = Math.floor(Math.min(...beds, targets.bed));
+    const max = Math.ceil(Math.max(...wakes, targets.wake));
+
     return [min, max];
+  }, [history, targets]);
+
+  // Generate perfect integer ticks to prevent Recharts from using weird fractions
+  const yAxisTicks = useMemo(() => {
+    const [min, max] = yDomain;
+    const ticks = [];
+    const span = max - min;
+
+    // If the graph spans more than 10 hours, step by 2 hours so text isn't crowded.
+    // Otherwise, step by 1 hour.
+    const step = span > 10 ? 2 : 1;
+
+    for (let i = min; i <= max; i += step) {
+      ticks.push(i);
+    }
+    return ticks;
+  }, [yDomain]);
+
+  // 2. EQUIDISTANT X-AXIS TICKS (Identical to MetricBlock)
+  const xAxisTicks = useMemo(() => {
+    if (!history || history.length === 0) return [];
+    if (history.length <= 5) return history.map((d) => d.date);
+
+    const ticks = [];
+    const step = (history.length - 1) / 4;
+    for (let i = 0; i < 5; i++) {
+      const index = Math.round(i * step);
+      if (history[index]) ticks.push(history[index].date);
+    }
+    return ticks;
   }, [history]);
 
-  // 2. TIME FORMATTER: Converts Noon-Ruler decimals back to HH:mm
-  const formatYTime = (val) => {
-    if (val === undefined || val === null) return "";
-    const totalHours = (val + 12) % 24;
-    const h = Math.floor(totalHours);
-    const m = Math.round((totalHours - h) * 60);
-    return `${h.toString().padStart(2, "0")}:${m === 0 ? "00" : "30"}`;
+  const formatXAxisDate = (tickItem) => {
+    if (!tickItem) return "";
+    const months = [
+      "JAN",
+      "FEB",
+      "MAR",
+      "APR",
+      "MAY",
+      "JUN",
+      "JUL",
+      "AUG",
+      "SEP",
+      "OCT",
+      "NOV",
+      "DEC",
+    ];
+    const parts = tickItem.split("-");
+    if (parts.length === 3) {
+      const day = parts[2];
+      const month = months[parseInt(parts[1], 10) - 1];
+      return `${day} ${month}`;
+    }
+    return tickItem;
   };
 
-  if (isAsleep) {
-    // ... (Your existing Cradle Mode UI remains the same)
-    return null;
-  }
+  const formatYTime = (val) => {
+    if (val === undefined || val === null) return "";
+
+    // Simply modulo 24 to convert Noon-Ruler decimals back to 24hr time!
+    // e.g., 31.0 % 24 = 7.0 (07:00 AM)
+    const totalHours = val % 24;
+
+    const h = Math.floor(totalHours);
+    const m = Math.round((totalHours - h) * 60);
+
+    // padStart ensures minutes like "0" become "00" safely
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+  };
 
   return (
-    <div className="max-w-xl mx-auto space-y-6 pb-32 px-2 animate-in fade-in duration-500">
+    <div className="space-y-8 max-w-xl mx-auto pb-6 px-2 animate-in fade-in duration-500">
       <header className="flex justify-between items-start">
         <div className="space-y-3">
           <h1 className="text-2xl font-black text-white uppercase tracking-tighter">
             Circadian
           </h1>
           <div className="flex gap-2">
-            {[7, 14, 30].map((d) => (
+            {ranges.map((d) => (
               <button
-                key={d}
-                onClick={() => {
-                  setDays(d);
-                  setPage(0);
-                }}
+                key={d.label}
+                onClick={() => setDays(d.value)}
                 className={`px-3 py-1 rounded-full text-[10px] font-black uppercase transition-all ${
-                  days === d
+                  days === d.value
                     ? "bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]"
                     : "bg-zinc-900 text-zinc-500 border border-white/5"
                 }`}
               >
-                {d}D
+                {d.label}
               </button>
             ))}
           </div>
@@ -78,64 +138,59 @@ export default function SleepModule() {
         </div>
       </header>
 
-      {/* CHART CONTAINER */}
-      <div className="bg-zinc-900/40 border border-white/5 rounded-[40px] p-4 relative group">
-        {/* Pagination Arrows */}
-        <div className="absolute top-1/2 -translate-y-1/2 left-2 right-2 flex justify-between z-10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          <button
-            onClick={() => setPage((p) => p + 1)}
-            className="p-2 bg-black/50 rounded-full backdrop-blur-md border border-white/10 text-white pointer-events-auto"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <button
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            className={`p-2 bg-black/50 rounded-full backdrop-blur-md border border-white/10 text-white pointer-events-auto ${page === 0 ? "invisible" : ""}`}
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-
-        <ResponsiveContainer width="100%" height={450}>
+      <div className="w-full border border-white/10 p-1 bg-black/20">
+        <ResponsiveContainer width="100%" height={400} minWidth={0}>
           <LineChart
             data={history}
-            margin={{ top: 20, right: 10, left: -25, bottom: 0 }}
+            margin={{ top: 0, right: 0, left: -15, bottom: -5 }}
           >
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="#ffffff05"
+              stroke="#27272a"
               vertical={false}
             />
+
             <XAxis
               dataKey="date"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#3f3f46", fontSize: 10, fontWeight: "bold" }}
-              formatter={(str) => (str ? str.split("-")[2] : "")}
+              ticks={xAxisTicks} // Forces exactly 5 dates
+              interval="preserveStartEnd" // Guarantees the first and last dates align perfectly with the graph edges
+              tickFormatter={formatXAxisDate}
+              stroke="#52525b"
+              fontSize={9}
+              fontWeight="bold"
+              axisLine={{ stroke: "#3f3f46", strokeWidth: 1 }}
+              tickLine={{ stroke: "#52525b", strokeWidth: 2 }} // Added vertical dash
+              tickSize={6} // Dash length
               dy={10}
             />
+
             <YAxis
               domain={yDomain}
+              ticks={yAxisTicks}
               tickFormatter={formatYTime}
-              axisLine={false}
+              stroke="#52525b"
+              fontSize={10}
+              fontWeight="bold"
+              axisLine={{ stroke: "#3f3f46", strokeWidth: 1 }}
               tickLine={false}
-              tick={{ fill: "#71717a", fontSize: 10, fontWeight: "bold" }}
+              dx={-10}
             />
-            {/* Target Settings Lines (Dotted) */}
+
+            {/* DYNAMIC SETTINGS LINES */}
             <ReferenceLine
-              y={12}
+              y={targets.bed}
               stroke="#06b6d4"
-              strokeDasharray="5 5"
-              strokeOpacity={0.15}
-            />{" "}
-            {/* 00:00 Goal */}
+              strokeWidth={1}
+              strokeOpacity={0.5}
+            />
+
             <ReferenceLine
-              y={19.5}
+              y={targets.wake}
               stroke="#ffffff"
-              strokeDasharray="5 5"
-              strokeOpacity={0.15}
-            />{" "}
-            {/* 07:30 Goal */}
+              strokeWidth={1}
+              strokeOpacity={0.5}
+            />
+
             <Tooltip
               contentStyle={{
                 backgroundColor: "#09090b",
@@ -147,6 +202,11 @@ export default function SleepModule() {
                 textTransform: "uppercase",
                 fontWeight: "bold",
               }}
+              labelStyle={{
+                color: "#71717a",
+                fontWeight: "bold",
+                marginBottom: "4px",
+              }}
               formatter={(value, name, props) => {
                 if (!props?.payload) return [value, name];
                 return name === "bed"
@@ -154,20 +214,20 @@ export default function SleepModule() {
                   : [props.payload.displayWake, "Woke"];
               }}
             />
-            {/* SLEEP LINE (Cyan) */}
+
             <Line
               type="monotone"
               dataKey="bed"
               stroke="#06b6d4"
-              strokeWidth={4}
-              dot={{ fill: "#06b6d4", r: 5 }}
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 6, fill: "#06b6d4", strokeWidth: 0 }}
               label={{
                 position: "top",
                 fill: "#06b6d4",
                 fontSize: 9,
                 fontWeight: "black",
                 dy: -10,
-                // CRITICAL SAFETY CHECK: entry.index must exist
                 formatter: (v, entry) => {
                   if (
                     entry &&
@@ -180,20 +240,20 @@ export default function SleepModule() {
                 },
               }}
             />
-            {/* WAKE LINE (White) */}
+
             <Line
               type="monotone"
               dataKey="wake"
               stroke="#fff"
               strokeWidth={2}
-              dot={{ fill: "#fff", r: 4 }}
+              dot={false}
+              activeDot={{ r: 6, fill: "#fff", strokeWidth: 0 }}
               label={{
                 position: "bottom",
                 fill: "#a1a1aa",
                 fontSize: 9,
                 fontWeight: "bold",
                 dy: 10,
-                // CRITICAL SAFETY CHECK: entry.index must exist
                 formatter: (v, entry) => {
                   if (
                     entry &&
@@ -209,13 +269,6 @@ export default function SleepModule() {
           </LineChart>
         </ResponsiveContainer>
       </div>
-
-      <button
-        onClick={() => handleAction("sleep")}
-        className="w-full py-8 bg-zinc-900/60 border border-white/10 text-zinc-400 font-black rounded-4xl uppercase tracking-[0.4em] text-[10px] hover:text-white transition-all active:scale-95"
-      >
-        Lights Out
-      </button>
     </div>
   );
 }

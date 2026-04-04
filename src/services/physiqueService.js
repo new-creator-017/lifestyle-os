@@ -7,6 +7,7 @@ import {
   orderBy,
   limit,
   getDocs,
+  where,
 } from "firebase/firestore";
 
 /**
@@ -48,16 +49,30 @@ export const getPhysiqueHistory = async (userId, days = 30) => {
 
   try {
     const metricsRef = collection(db, "users", userId, "metrics");
-    // If 'ALL' is passed, fetch a large limit, otherwise use the days constraint
-    const queryLimit = days === "ALL" ? 1000 : days;
+    let q;
 
-    const q = query(metricsRef, orderBy("date", "desc"), limit(queryLimit));
+    if (days === "ALL") {
+      // Fetch everything, naturally sorted from oldest to newest
+      q = query(metricsRef, orderBy("date", "asc"));
+    } else {
+      // Calculate the exact date 'days' ago
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() - days);
+      const cutoffDateStr = targetDate.toLocaleDateString("en-CA");
+
+      // Query strictly for documents from that date forward, ordered chronologically
+      q = query(
+        metricsRef,
+        where("date", ">=", cutoffDateStr),
+        orderBy("date", "asc"),
+      );
+    }
+
     const snap = await getDocs(q);
-
     const data = snap.docs.map((doc) => doc.data());
 
-    // Reverse it so the oldest data is on the left of the graph, newest on the right
-    return data.reverse();
+    // No need to reverse since orderBy("date", "asc") handled the chronology natively
+    return data;
   } catch (error) {
     console.error("PHYSIQUE_FETCH_ERROR:", error);
     return [];
